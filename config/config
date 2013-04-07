@@ -1,0 +1,8 @@
+[Hosting]
+host = e3.emarsys.net
+root_path = '/home/glossybox/exports/'
+username = glossybox
+password = WG4Xr8rD
+
+[Settings]
+last_day = 07-04-2013
