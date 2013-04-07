@@ -1,5 +1,6 @@
 <?php
-set_include_path(get_include_path() . PATH_SEPARATOR . 'vendor/phpsec/');
+require 'vendor/autoload.php';
+//set_include_path(get_include_path() . PATH_SEPARATOR . 'vendor/phpsec/');
 
 include('Net/SFTP.php');
 
@@ -80,6 +81,5 @@ exec('cat ftp/complaints*.csv | grep -v ts,email > csv/complaints.csv');
 exec('cat ftp/unsubs*.csv | grep -v ts,type,email > csv/unsubscribes.csv');
 
 // TO-DO
-// Exclude files
 // Update database
 ?>
