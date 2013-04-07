@@ -7,12 +7,13 @@ class SFTPSpider {
 	private $dateFormat = 'Y-m-d';
 	private $logging = false;
 	private $files;
+	private $sftp;
 
 	public function setDateFormat($format)
 	{
 		$this->dateFormat = $format;
 		if ($this->logging) {
-			echo '\nDate format set: ', $format;
+			echo "\nDate format set: ", $format;
 		}
 	}
 
@@ -24,24 +25,38 @@ class SFTPSpider {
 				throw new Exception('This method accepts only true or false');
 			$this->logging = $value;
 		} catch(Exception $e) {
-			echo 'ERROR: ', $e->getMessage();
+			echo "\nERROR: ", $e->getMessage();
 		}
 	}
 
 	public function addFile($filename)
 	{
 		$this->files[] = $filename;
+		if ($this->logging) {
+			echo "\n\rFile added to download list: ", $filename;
+		}
 	}
 
 	public function listFiles()
 	{
-		print_r($this->files);
+		echo "\nListing files queue: \n", print_r($this->files);
 	}
 
-	public function __construct() 
- 	{
-		$this->config = parse_ini_file('config/config');
+	public function getFile($filepath)
+	{
 		
+	}
+
+	public function __construct()
+ 	{
+ 		try {
+			$this->config = parse_ini_file('config/config');
+			$this->sftp = new NET_SFTP($this->config['host']);
+			if (!$this->sftp->login($this->config['username'], $this->config['password']))
+				throw new Exception('Login Failed');
+		} catch(Exception $e) {
+			echo 'ERROR: ', $e->getMessage();
+		}
 	}
 
 }

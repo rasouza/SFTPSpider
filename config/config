@@ -6,3 +6,5 @@ password = WG4Xr8rD
 
 [Settings]
 last_day = 07-04-2013
+temp_path = ftp/
+file_path = csv/

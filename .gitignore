@@ -167,6 +167,8 @@ pip-log.txt
 ############
 
 vendor
+project.sublime-project
+project.sublime-workspace
 
 ############
 ## Project
