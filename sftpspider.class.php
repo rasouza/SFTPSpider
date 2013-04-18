@@ -94,13 +94,6 @@ class SFTPSpider {
 		fclose($fp2);
 	}
 
-	public function insertDB()
-	{
-		$conn = new PDO("mysql:host=localhost;dbname=unsubs", 'root', '');
-		//$msg = $conn->query("LOAD DATA INFILE 'csv/blacklist.csv' INTO TABLE blacklist LINES TERMINATED BY '\n'");
-		echo $msg;
-	}
-
 	public function __construct()
  	{
  		try {
@@ -121,4 +114,4 @@ $obj->setDateFormat('Ymd');
 $obj->addFile('UNSUBSCRIBES.csv');
 $obj->addFile('BOUNCES.csv');
 $obj->addFile('COMPLAINTS.csv');
-$obj->insertDB();
+$obj->init();
