@@ -4,14 +4,13 @@ require 'Net/SFTP.php';
 
 class SFTPSpider {
 	private $config;
-	private $dateFormat = 'Y-m-d';
 	private $logging = false;
 	private $files;
 	private $sftp;
 
 	public function setDateFormat($format)
 	{
-		$this->dateFormat = $format;
+		$this->config['date_format'] = $format;
 		if ($this->logging) {
 			echo "\nDate format set: ", $format;
 		}
@@ -33,7 +32,7 @@ class SFTPSpider {
 	{
 		$this->files[] = $filename;
 		if ($this->logging) {
-			echo "\n\rFile added to download list: ", $filename;
+			echo "\nFile added to download list: ", $filename;
 		}
 	}
 
@@ -42,15 +41,71 @@ class SFTPSpider {
 		echo "\nListing files queue: \n", print_r($this->files);
 	}
 
-	public function getFile($filepath)
+	private function getFiles()
 	{
-		
+		// Filters all folders and iterate through them
+		$folders = array_diff($this->sftp->nlist($this->config['root_path']), $this->config['ignore']);
+		foreach ($folders as $folder) {
+			// Check folder date
+			$date = DateTime::createFromFormat($this->config['date_format'],substr($folder, 0, 8));
+			$last_day = DateTime::createFromFormat('d-m-Y', $this->config['last_day']);
+
+			// Folders older than last day checked will be ignored
+			if ($date >= $last_day) {
+
+				// Filters folders to iterate
+				$subfolders = preg_grep($this->config['allow'], $this->sftp->nlist($this->config['root_path'] . $folder));
+				foreach ($subfolders as $subfolder) {
+
+					// Download all files in the queue
+					foreach ($this->files as $file) {
+						$this->sftp->get("{$this->config['root_path']}$folder/$subfolder/$file", 'ftp/' . md5("$folder/$subfolder/$file") . '.csv');
+					}
+				}
+			}
+		}
+	}
+
+	public function init()
+	{
+		$this->getFiles();
+		$this->readCSV();
+	}
+
+	public function readCSV()
+	{
+		$iter = new DirectoryIterator('ftp/');
+		$fp2 = fopen('csv/blacklist.csv', 'w');
+		foreach ($iter as $file) {
+			if ($file->isFile()) {
+				$fp = fopen($file->getPathname(), 'r');
+				
+				while (($data = fgetcsv($fp, null, ",")) !== FALSE) {
+					$tmpEmail = preg_grep("/^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/", $data);
+					$tmpEmail = array_shift($tmpEmail);
+					if ($tmpEmail != '') {
+						fwrite($fp2, $tmpEmail . "\n");
+					}
+				}
+				fclose($fp);
+				
+			}
+		}
+		fclose($fp2);
+	}
+
+	public function insertDB()
+	{
+		$conn = new PDO("mysql:host=localhost;dbname=unsubs", 'root', '');
+		//$msg = $conn->query("LOAD DATA INFILE 'csv/blacklist.csv' INTO TABLE blacklist LINES TERMINATED BY '\n'");
+		echo $msg;
 	}
 
 	public function __construct()
  	{
  		try {
 			$this->config = parse_ini_file('config/config');
+			$this->config['ignore'] = explode(' ', $this->config['ignore']);
 			$this->sftp = new NET_SFTP($this->config['host']);
 			if (!$this->sftp->login($this->config['username'], $this->config['password']))
 				throw new Exception('Login Failed');
@@ -62,7 +117,8 @@ class SFTPSpider {
 }
 
 $obj = new SFTPSpider();
-$obj->setLogging(true);
 $obj->setDateFormat('Ymd');
-$obj->addFile('UNSUBSCRIBE.csv');
-$obj->listFiles();
+$obj->addFile('UNSUBSCRIBES.csv');
+$obj->addFile('BOUNCES.csv');
+$obj->addFile('COMPLAINTS.csv');
+$obj->insertDB();

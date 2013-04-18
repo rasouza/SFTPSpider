@@ -5,6 +5,9 @@ username = glossybox
 password = WG4Xr8rD
 
 [Settings]
-last_day = 07-04-2013
+last_day = 17-04-2013
 temp_path = ftp/
 file_path = csv/
+date_format = Y-m-d
+allow = /^[A-Za-z0-9]+BR$/
+ignore = . ..
