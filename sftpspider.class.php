@@ -12,39 +12,40 @@ class SFTPSpider {
 	{
 		$this->config['date_format'] = $format;
 		if ($this->logging) {
-			echo "\nDate format set: ", $format;
+			echo "Date format set: ", $format, "\n";
 		}
 	}
 
 	public function setLogging($value)
 	{
-		try
-		{
-			if (!is_bool($value))
-				throw new Exception('This method accepts only true or false');
-			$this->logging = $value;
-		} catch(Exception $e) {
-			echo "\nERROR: ", $e->getMessage();
-		}
+		$this->logging = $value;
 	}
 
 	public function addFile($filename)
 	{
 		$this->files[] = $filename;
+
 		if ($this->logging) {
-			echo "\nFile added to download list: ", $filename;
+			echo "File added to download list: ", $filename, "\n";
 		}
 	}
 
 	public function listFiles()
 	{
-		echo "\nListing files queue: \n", print_r($this->files);
+		echo "Listing files queue: \n", print_r($this->files), "\n";
 	}
 
 	private function getFiles()
 	{
+		// Creates file counters
+		foreach ($this->files as $file) {
+			$count[$file] = 0;
+		}
+
+		$this->sftp->chdir($this->config['root_path']);
 		// Filters all folders and iterate through them
-		$folders = array_diff($this->sftp->nlist($this->config['root_path']), $this->config['ignore']);
+		$folders = array_diff($this->sftp->nlist(), $this->config['ignore']);
+		
 		foreach ($folders as $folder) {
 			// Check folder date
 			$date = DateTime::createFromFormat($this->config['date_format'],substr($folder, 0, 8));
@@ -54,28 +55,46 @@ class SFTPSpider {
 			if ($date >= $last_day) {
 
 				// Filters folders to iterate
-				$subfolders = preg_grep($this->config['allow'], $this->sftp->nlist($this->config['root_path'] . $folder));
+				$subfolders = preg_grep($this->config['allow'], $this->sftp->nlist($folder));
 				foreach ($subfolders as $subfolder) {
 
 					// Download all files in the queue
 					foreach ($this->files as $file) {
-						$this->sftp->get("{$this->config['root_path']}$folder/$subfolder/$file", 'ftp/' . md5("$folder/$subfolder/$file") . '.csv');
+						if ($this->sftp->size("$folder/$subfolder/$file") != null) {
+							$count[$file]++;
+							$this->sftp->get("$folder/$subfolder/$file", $this->config['temp_path'] . md5("$folder/$subfolder/$file") . '.csv');
+						}
 					}
 				}
 			}
 		}
+		
+		if ($this->logging) {
+			foreach ($count as $file => $n) {
+				echo "\n\t$file => $n files";
+			}
+		}
+
+		return $count;
 	}
 
 	public function init()
 	{
+		echo "\nCleaning folders... ";
+		$this->wipe();
+		echo "\nGetting files... ";
 		$this->getFiles();
+		echo "\nMerging files... ";
 		$this->readCSV();
+		$this->close();
+		echo "\nDone!\n\n";
 	}
 
 	public function readCSV()
 	{
-		$iter = new DirectoryIterator('ftp/');
-		$fp2 = fopen('csv/blacklist.csv', 'w');
+		$count = 0;
+		$iter = new DirectoryIterator($this->config['temp_path']);
+		$fp2 = fopen("{$this->config['file_path']}/{$this->config['final_file_name']}", 'w');
 		foreach ($iter as $file) {
 			if ($file->isFile()) {
 				$fp = fopen($file->getPathname(), 'r');
@@ -85,13 +104,45 @@ class SFTPSpider {
 					$tmpEmail = array_shift($tmpEmail);
 					if ($tmpEmail != '') {
 						fwrite($fp2, $tmpEmail . "\n");
+						$count++;
 					}
 				}
 				fclose($fp);
-				
 			}
 		}
 		fclose($fp2);
+
+		if ($this->logging) {
+			echo "$count lines merged.";
+		}
+	}
+
+	private function wipe()
+	{
+		$cont = 0;
+		foreach(glob("{$this->config['temp_path']}*") as $file) {
+			$cont++;
+			unlink($file);
+		}
+		
+		if ($this->logging) {
+			echo "$cont files deleted.";
+		}
+	}
+
+	private function close()
+	{
+		// Update last day checked
+		$data = parse_ini_file('config/config');
+		$fh = fopen('config/config', 'w');
+		foreach($data as $key => $value) {
+			if($key == 'last_day') {
+				$value = new DateTime();
+				$value = $value->format('d-m-Y');
+			}
+			fwrite($fh, "{$key} = {$value}\n");
+		}
+		fclose($fh);
 	}
 
 	public function __construct()
@@ -109,9 +160,4 @@ class SFTPSpider {
 
 }
 
-$obj = new SFTPSpider();
-$obj->setDateFormat('Ymd');
-$obj->addFile('UNSUBSCRIBES.csv');
-$obj->addFile('BOUNCES.csv');
-$obj->addFile('COMPLAINTS.csv');
-$obj->init();
+
