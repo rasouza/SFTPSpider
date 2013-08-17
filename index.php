@@ -9,7 +9,7 @@ try
 	$obj->addFile('UNSUBSCRIBES.csv');
 	$obj->addFile('BOUNCES.csv');
 	$obj->addFile('COMPLAINTS.csv');
-	$obj->init();
+	$obj->init('blacklist.csv');
 } catch(Exception $e) {
 	echo "Error", $e->getMessage();
 }

@@ -78,29 +78,29 @@ class SFTPSpider {
 		return $count;
 	}
 
-	public function init()
+	public function init($filename)
 	{
 		// Create folders if they don't exist
 		if(!file_exists('csv'))
-			exec('mkdir csv');
+			mkdir('csv');
 		if(!file_exists('ftp'))
-			exec('mkdir ftp');
+			mkdir('ftp');
 
 		echo "\nCleaning folders... ";
 		$this->wipe();
 		echo "\nGetting files... ";
 		$this->getFiles();
 		echo "\nMerging files... ";
-		$this->readCSV();
+		$this->readCSV($filename);
 		$this->close();
 		echo "\nDone!\n\n";
 	}
 
-	public function readCSV()
+	public function readCSV($filename)
 	{
 		$count = 0;
 		$iter = new DirectoryIterator($this->config['temp_path']);
-		$fp2 = fopen("{$this->config['file_path']}/{$this->config['final_file_name']}", 'w');
+		$fp2 = fopen("{$this->config['file_path']}/{$filename}", 'w');
 		foreach ($iter as $file) {
 			if ($file->isFile()) {
 				$fp = fopen($file->getPathname(), 'r');
