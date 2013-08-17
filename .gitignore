@@ -174,5 +174,7 @@ project.sublime-workspace
 ## Project
 ############
 
-ftp
-csv
+ftp/*
+csv/*
+*~
+composer.lock
