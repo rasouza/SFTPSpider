@@ -80,6 +80,12 @@ class SFTPSpider {
 
 	public function init()
 	{
+		// Create folders if they don't exist
+		if(!file_exists('csv'))
+			exec('mkdir csv');
+		if(!file_exists('ftp'))
+			exec('mkdir ftp');
+
 		echo "\nCleaning folders... ";
 		$this->wipe();
 		echo "\nGetting files... ";
