@@ -1,5 +1,5 @@
 <?php
-require 'sftpspider.class.php';
+require 'SFTPSpider.class.php';
 
 try
 {
