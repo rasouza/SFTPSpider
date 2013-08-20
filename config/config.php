@@ -3,7 +3,7 @@
   'root_path' => '/home/glossybox/exports/',
   'username' => 'glossybox',
   'password' => 'WG4Xr8rD',
-  'last_day' => '15-08-2013',
+  'last_day' => '20-08-2013',
   'temp_path' => 'ftp/',
   'file_path' => 'csv/',
   'date_format' => 'Ymd',
